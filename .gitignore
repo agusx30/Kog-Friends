@@ -46,3 +46,10 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local nested repo placeholder
+Kog-Friendly/
+
+# Android signing keys
+android/key.properties
+android/app/upload-keystore.jks
