@@ -16,6 +16,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
+  assets:
+    - flutter_01.png
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "flutter_01.png"
+  min_sdk_android: 21
