@@ -265,6 +265,67 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
     controller.dispose();
   }
 
+  Future<void> _showInviteDialog() async {
+    final theme = Theme.of(context);
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cómo invitar?'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Hay dos formas de importar amigos:'),
+                const SizedBox(height: 12),
+                const Text('1. Agrégalos uno por uno pegando un comando add_friend.'),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const SelectableText(
+                    'add_friend "Dkz" "|*KoG*|"\n'
+                    'add_friend "Floῳless" ""\n'
+                    'add_friend "Serafim" ""\n'
+                    'add_friend "Peoxx" ""\n'
+                    'add_friend "Zer0" ""\n'
+                    'add_friend "agusx30" ""',
+                    style: TextStyle(fontFamily: 'monospace'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '2. O abrí %appdata%\\Roaming\\DDNet\\settings_ddnet.cfg '
+                  'y copiá el bloque final con add_friend para importarlos todos a la vez.',
+                ),
+                const SizedBox(height: 8),
+                SelectableText(
+                  r'%appdata%\Roaming\DDNet\settings_ddnet.cfg',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Listo'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -294,10 +355,32 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
           const SizedBox(width: 8),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddDialog,
-        icon: const Icon(Icons.person_add_alt_1),
-        label: const Text('Agregar amigos'),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(left: 32),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton.icon(
+              onPressed: _showInviteDialog,
+              icon: const Icon(Icons.help_outline),
+              label: const Text('Cómo invitar?'),
+              style: TextButton.styleFrom(
+                backgroundColor: theme.colorScheme.surfaceContainerHigh,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FloatingActionButton.extended(
+              onPressed: _showAddDialog,
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text('Agregar amigos'),
+            ),
+          ],
+        ),
       ),
       body: SafeArea(
         child: _loading
