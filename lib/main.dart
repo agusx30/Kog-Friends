@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'src/app_strings.dart';
 import 'src/ddnet_presence_service.dart';
 import 'src/friend_command_parser.dart';
 
@@ -46,9 +47,11 @@ class FriendsPage extends StatefulWidget {
 
 class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
   static const _friendsKey = 'friend_names_v1';
+  static const _languageKey = 'app_language_v1';
   static const _refreshInterval = Duration(seconds: 30);
 
   final _presenceService = DDNetPresenceService(http.Client());
+  AppLanguage _language = AppLanguage.es;
   List<String> _friends = [];
   Map<String, ServerPresence> _onlineFriends = {};
   DateTime? _lastUpdated;
@@ -58,11 +61,13 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
   bool _refreshing = false;
   bool _refreshPending = false;
 
+  AppStrings get _strings => AppStrings(_language);
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _restoreFriends();
+    _restoreState();
   }
 
   @override
@@ -84,15 +89,17 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _restoreFriends() async {
+  Future<void> _restoreState() async {
     try {
       final preferences = await SharedPreferences.getInstance();
+      final savedLanguage = preferences.getString(_languageKey);
       final saved = preferences.getString(_friendsKey);
       final names = saved == null
           ? <String>[]
           : (jsonDecode(saved) as List<dynamic>).cast<String>();
       if (!mounted) return;
       setState(() {
+        _language = AppLanguage.fromCode(savedLanguage);
         _friends = names;
         _loading = false;
       });
@@ -102,9 +109,22 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'No se pudo cargar la lista guardada: $error';
+        _error = _strings.loadError(error);
       });
     }
+  }
+
+  Future<void> _setLanguage(AppLanguage language) async {
+    setState(() {
+      _language = language;
+    });
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(_languageKey, language.code);
+    } catch (_) {
+      // Ignore persistence errors.
+    }
+    unawaited(_updateWidget());
   }
 
   void _startForegroundRefresh() {
@@ -147,7 +167,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = 'No se pudo actualizar el estado: $error';
+        _error = _strings.refreshError(error);
       });
     } finally {
       if (mounted) {
@@ -169,7 +189,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
       await HomeWidget.saveWidgetData<String>('title', 'DDNet Friends');
       await HomeWidget.saveWidgetData<String>(
         'message',
-        '$onlineCount de $totalCount amigos en línea',
+        _strings.widgetSummary(onlineCount, totalCount),
       );
       await HomeWidget.updateWidget(name: 'AppWidgetProvider');
     } catch (_) {
@@ -186,8 +206,8 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
     late final List<String> parsed;
     try {
       parsed = FriendCommandParser.parse(pastedCommands);
-    } on FormatException catch (error) {
-      _showMessage(error.message.toString());
+    } on FormatException {
+      _showMessage(_strings.emptyInputError);
       return;
     }
 
@@ -198,7 +218,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
     try {
       await _saveFriends(updated);
     } catch (error) {
-      _showMessage('No se pudo guardar la lista: $error');
+      _showMessage(_strings.saveError(error));
       return;
     }
 
@@ -210,7 +230,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
     });
     Navigator.of(context).pop();
     if (additions.isEmpty) {
-      _showMessage('Los amigos ya estaban en la lista.');
+      _showMessage(_strings.alreadyInListMessage);
       return;
     }
     _refreshPresence();
@@ -221,7 +241,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
     try {
       await _saveFriends(updated);
     } catch (error) {
-      _showMessage('No se pudo guardar el cambio: $error');
+      _showMessage(_strings.saveError(error));
       return;
     }
     if (!mounted) return;
@@ -239,32 +259,28 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
   }
 
   Future<void> _showAddDialog() async {
+    final strings = _strings;
     final controller = TextEditingController();
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Agregar amigos'),
+        title: Text(strings.addFriendsButton),
         content: SizedBox(
           width: 420,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Escribí un nombre por línea, o pegá comandos add_friend '
-                'copiados de DDNet. Se importa el nombre y se ignora el clan. '
-                'También se admite add_player.',
-              ),
+              Text(strings.addDialogDescription),
               const SizedBox(height: 16),
               TextField(
                 controller: controller,
                 autofocus: true,
                 minLines: 3,
                 maxLines: 7,
-                decoration: const InputDecoration(
-                  hintText:
-                      'agus\nOtroJugador\nadd_friend "Nombre del jugador" "Clan"',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  hintText: strings.addDialogHint,
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ],
@@ -273,11 +289,11 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancelar'),
+            child: Text(strings.cancelButton),
           ),
           FilledButton(
             onPressed: () => _addFriends(controller.text),
-            child: const Text('Agregar'),
+            child: Text(strings.addButton),
           ),
         ],
       ),
@@ -285,13 +301,14 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
     controller.dispose();
   }
 
-  Future<void> _showInviteDialog() async {
+  Future<void> _showHowToAddDialog() async {
     final theme = Theme.of(context);
+    final strings = _strings;
 
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cómo invitar?'),
+        title: Text(strings.howToAddButton),
         content: SizedBox(
           width: 420,
           child: SingleChildScrollView(
@@ -299,12 +316,9 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Hay dos formas de agregar amigos:'),
+                Text(strings.howToIntro),
                 const SizedBox(height: 12),
-                const Text(
-                  '1. Agrégalos uno por uno escribiendo su nombre directo '
-                  '(ej. agus) o pegando un comando add_friend.',
-                ),
+                Text(strings.howToStep1),
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
@@ -324,11 +338,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  '2. O andá a "%appdata%", entrá a AppData\\Roaming\\DDNet '
-                  'y abrí settings_ddnet.cfg. Al final del cfg están los '
-                  'add_friend: ahí los podés copiar todos de una.',
-                ),
+                Text(strings.howToStep2),
                 const SizedBox(height: 8),
                 SelectableText(
                   r'%appdata%\Roaming\DDNet\settings_ddnet.cfg',
@@ -343,7 +353,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
         actions: [
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Listo'),
+            child: Text(strings.doneButton),
           ),
         ],
       ),
@@ -353,6 +363,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final strings = _strings;
     final sortedFriends = [..._friends]..sort((a, b) {
         final aOnline = _onlineFriends.containsKey(a.toLowerCase());
         final bOnline = _onlineFriends.containsKey(b.toLowerCase());
@@ -364,15 +375,43 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
       appBar: AppBar(
         title: const Text('DDNet Friends'),
         actions: [
+          PopupMenuButton<AppLanguage>(
+            tooltip: strings.languageTooltip,
+            initialValue: _language,
+            onSelected: _setLanguage,
+            icon: const Icon(Icons.language),
+            itemBuilder: (context) => AppLanguage.values
+                .map(
+                  (lang) => PopupMenuItem<AppLanguage>(
+                    value: lang,
+                    child: Row(
+                      children: [
+                        Icon(
+                          lang == _language
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_unchecked,
+                          size: 18,
+                          color: lang == _language
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(lang.label),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
           IconButton(
-            tooltip: 'Donar',
+            tooltip: strings.donateTooltip,
             onPressed: () {
               launchUrl(Uri.parse('https://ko-fi.com/agusx30'));
             },
             icon: const Icon(Icons.favorite, color: Colors.pinkAccent),
           ),
           IconButton(
-            tooltip: 'Actualizar ahora',
+            tooltip: strings.refreshTooltip,
             onPressed:
                 _refreshing || _friends.isEmpty ? null : _refreshPresence,
             icon: _refreshing
@@ -397,17 +436,17 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
           children: [
             FloatingActionButton.extended(
               heroTag: 'how_to',
-              onPressed: _showInviteDialog,
+              onPressed: _showHowToAddDialog,
               backgroundColor: theme.colorScheme.surfaceContainerHigh,
               foregroundColor: theme.colorScheme.onSurface,
               icon: const Icon(Icons.help_outline),
-              label: const Text('Cómo invitar?'),
+              label: Text(strings.howToAddButton),
             ),
             FloatingActionButton.extended(
               heroTag: 'add_friend',
               onPressed: _showAddDialog,
               icon: const Icon(Icons.person_add_alt_1),
-              label: const Text('Agregar amigos'),
+              label: Text(strings.addFriendsButton),
             ),
           ],
         ),
@@ -425,6 +464,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
                       totalCount: _friends.length,
                       lastUpdated: _lastUpdated,
                       refreshing: _refreshing,
+                      strings: strings,
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 12),
@@ -433,7 +473,10 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
                     const SizedBox(height: 20),
                     Row(
                       children: [
-                        Text('TUS AMIGOS', style: theme.textTheme.labelLarge),
+                        Text(
+                          strings.yourFriendsHeader,
+                          style: theme.textTheme.labelLarge,
+                        ),
                         const Spacer(),
                         Text(
                           '${_friends.length}',
@@ -445,7 +488,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 10),
                     if (_friends.isEmpty)
-                      const _EmptyFriendsCard()
+                      _EmptyFriendsCard(strings: strings)
                     else
                       ...sortedFriends.map((name) {
                         final presence = _onlineFriends[name.toLowerCase()];
@@ -455,6 +498,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
                             name: name,
                             presence: presence,
                             onRemove: () => _removeFriend(name),
+                            strings: strings,
                           ),
                         );
                       }),
@@ -472,12 +516,14 @@ class _SummaryCard extends StatelessWidget {
     required this.totalCount,
     required this.lastUpdated,
     required this.refreshing,
+    required this.strings,
   });
 
   final int onlineCount;
   final int totalCount;
   final DateTime? lastUpdated;
   final bool refreshing;
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -509,7 +555,7 @@ class _SummaryCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'de $totalCount amigos en línea',
+                    strings.onlineSummary(totalCount),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -517,8 +563,10 @@ class _SummaryCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     lastUpdated == null
-                        ? (refreshing ? 'Actualizando…' : 'Sin datos recientes')
-                        : 'Actualizado ${_formatTime(lastUpdated!)}',
+                        ? (refreshing
+                            ? strings.updatingStatus
+                            : strings.noRecentData)
+                        : strings.updatedAt(_formatTime(lastUpdated!)),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -538,11 +586,13 @@ class _FriendTile extends StatelessWidget {
     required this.name,
     required this.presence,
     required this.onRemove,
+    required this.strings,
   });
 
   final String name;
   final ServerPresence? presence;
   final VoidCallback onRemove;
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -566,13 +616,13 @@ class _FriendTile extends StatelessWidget {
         ),
         title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(
-          online ? serverDetails : 'Sin conexión en DDNet',
+          online ? serverDetails : strings.offlineInDDNet,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
         isThreeLine: online,
         trailing: IconButton(
-          tooltip: 'Quitar de la lista',
+          tooltip: strings.removeTooltip,
           onPressed: onRemove,
           icon: const Icon(Icons.close),
         ),
@@ -606,7 +656,9 @@ class _ErrorCard extends StatelessWidget {
 }
 
 class _EmptyFriendsCard extends StatelessWidget {
-  const _EmptyFriendsCard();
+  const _EmptyFriendsCard({required this.strings});
+
+  final AppStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -621,10 +673,10 @@ class _EmptyFriendsCard extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 12),
-            const Text('Todavía no agregaste amigos'),
+            Text(strings.emptyFriendsTitle),
             const SizedBox(height: 4),
             Text(
-              'Escribí un nombre o pegá tus comandos add_friend para empezar.',
+              strings.emptyFriendsSubtitle,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),

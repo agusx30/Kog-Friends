@@ -39,13 +39,13 @@ void main() {
     );
   });
 
-  testWidgets('opens the invite-help dialog with DDNet import instructions', (
+  testWidgets('opens the how-to-add dialog with DDNet import instructions', (
     tester,
   ) async {
     await tester.pumpWidget(const DDNetFriendsApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Cómo invitar?'));
+    await tester.tap(find.text('Cómo agregar?'));
     await tester.pumpAndSettle();
 
     expect(find.byType(AlertDialog), findsOneWidget);
@@ -55,5 +55,32 @@ void main() {
     );
     expect(find.textContaining('add_friend "Dkz\'"'), findsOneWidget);
     expect(find.textContaining('add_friend "agusx30"'), findsOneWidget);
+  });
+
+  testWidgets('switches language between Spanish, English, and Portuguese', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const DDNetFriendsApp());
+    await tester.pumpAndSettle();
+
+    // Switch to English
+    await tester.tap(find.byIcon(Icons.language));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('How to add?'), findsOneWidget);
+    expect(find.text('Add friends'), findsOneWidget);
+    expect(find.text('YOUR FRIENDS'), findsOneWidget);
+
+    // Switch to Portuguese
+    await tester.tap(find.byIcon(Icons.language));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Português'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Como adicionar?'), findsOneWidget);
+    expect(find.text('Adicionar amigos'), findsOneWidget);
+    expect(find.text('SEUS AMIGOS'), findsOneWidget);
   });
 }
