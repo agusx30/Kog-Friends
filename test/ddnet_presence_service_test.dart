@@ -1,12 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:kog_friends/src/kog_presence_service.dart';
+import 'package:kog_friends/src/ddnet_presence_service.dart';
 
 void main() {
-  group('KogPresenceService', () {
-    test('matches friends case-insensitively and returns server details',
-        () async {
+  group('DDNetPresenceService', () {
+    test('matches friends case-insensitively across all servers', () async {
       final client = MockClient((request) async {
         return http.Response(
           '''
@@ -35,13 +34,13 @@ void main() {
           200,
         );
       });
-      final service = KogPresenceService(client);
+      final service = DDNetPresenceService(client);
 
       final result = await service.findFriends(['PLAYER ONE', 'Player Two']);
 
-      expect(result.keys, ['player one']);
+      expect(result.keys, ['player one', 'player two']);
       expect(result['player one']?.serverName, 'KOG Solo');
-      expect(result['player one']?.mapName, 'TestMap');
+      expect(result['player two']?.serverName, 'DDNet Server');
       service.close();
     });
 
@@ -51,7 +50,7 @@ void main() {
         requestCount++;
         if (requestCount == 1) {
           return http.Response(
-            '{"servers":[{"community":"kog","info":{"name":"KOG","map":{"name":"Map"},"clients":[{"name":"Friend"}]}}]}',
+            '{"servers":[{"community":"ddnet","info":{"name":"DDNet","map":{"name":"Map"},"clients":[{"name":"Friend"}]}}]}',
             200,
             headers: {'etag': '"test-etag"'},
           );
@@ -59,7 +58,7 @@ void main() {
         expect(request.headers['if-none-match'], '"test-etag"');
         return http.Response('', 304);
       });
-      final service = KogPresenceService(client);
+      final service = DDNetPresenceService(client);
 
       final first = await service.findFriends(['Friend']);
       final second = await service.findFriends(['Friend']);
@@ -72,7 +71,7 @@ void main() {
 
     test('throws an explicit error for unsuccessful server responses',
         () async {
-      final service = KogPresenceService(
+      final service = DDNetPresenceService(
         MockClient((request) async => http.Response('unavailable', 503)),
       );
 

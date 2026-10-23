@@ -28,14 +28,9 @@ add_player "Tee \"Ace\""''',
       expect(names, ['PlayerOne', 'Tee "Ace"']);
     });
 
-    test('reports malformed command lines', () {
-      expect(
-        () => FriendCommandParser.parse(
-          'add_player "Good"\nremove_player "Bad"\n'
-          'add_friend "Name" "Clan" extra',
-        ),
-        throwsA(isA<FormatException>()),
-      );
+    test('accepts plain player names directly', () {
+      final names = FriendCommandParser.parse('agus\nOtroJugador');
+      expect(names, ['agus', 'OtroJugador']);
     });
 
     test('rejects empty input', () {

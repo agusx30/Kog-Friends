@@ -11,7 +11,6 @@ class FriendCommandParser {
 
   static List<String> parse(String input) {
     final names = <String>[];
-    final invalidLines = <int>[];
     final seen = <String>{};
     final lines = input.split(RegExp(r'[\r\n]+'));
 
@@ -25,15 +24,11 @@ class FriendCommandParser {
       final rawName = addFriendMatch?.group(1) ??
           addPlayerMatch?.group(1) ??
           addPlayerMatch?.group(2) ??
-          addPlayerMatch?.group(3);
-      final name = rawName?.trim();
-      if (name == null || name.isEmpty) {
-        invalidLines.add(index + 1);
-        continue;
-      }
+          addPlayerMatch?.group(3) ??
+          line; // Si no es un comando, tratar la línea entera como nombre
+      final name = rawName.trim();
       final decodedName = _unescape(name);
       if (decodedName.isEmpty) {
-        invalidLines.add(index + 1);
         continue;
       }
       if (seen.add(decodedName.toLowerCase())) {
@@ -41,15 +36,9 @@ class FriendCommandParser {
       }
     }
 
-    if (invalidLines.isNotEmpty) {
-      throw FormatException(
-        'No reconocí los comandos add_friend o add_player en la(s) línea(s) '
-        '${invalidLines.join(', ')}.',
-      );
-    }
     if (names.isEmpty) {
       throw const FormatException(
-        'Pegá al menos un comando add_friend o add_player.',
+        'Escribí al menos un nombre o pegá un comando add_friend.',
       );
     }
     return names;

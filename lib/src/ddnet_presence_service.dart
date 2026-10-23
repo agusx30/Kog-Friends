@@ -15,8 +15,8 @@ class ServerPresence {
   final String location;
 }
 
-class KogPresenceService {
-  KogPresenceService(this._client);
+class DDNetPresenceService {
+  DDNetPresenceService(this._client);
 
   static final _endpoint = Uri.parse(
     'https://master1.ddnet.org/ddnet/15/servers.json',
@@ -67,8 +67,6 @@ class KogPresenceService {
     final presenceByName = <String, ServerPresence>{};
     for (final serverValue in decoded['servers'] as List<dynamic>) {
       if (serverValue is! Map<String, dynamic>) continue;
-      final community = serverValue['community'] ?? serverValue['community_id'];
-      if (community?.toString().toLowerCase() != 'kog') continue;
 
       final info = serverValue['info'];
       if (info is! Map<String, dynamic>) continue;
@@ -79,7 +77,7 @@ class KogPresenceService {
       final mapName = map is Map<String, dynamic>
           ? map['name']?.toString() ?? 'Mapa desconocido'
           : 'Mapa desconocido';
-      final serverName = info['name']?.toString() ?? 'Servidor KOG';
+      final serverName = info['name']?.toString() ?? 'Servidor DDNet';
       final location = serverValue['location']?.toString() ?? '';
       for (final clientValue in clients) {
         if (clientValue is! Map<String, dynamic>) continue;

@@ -1,5 +1,5 @@
 name: kog_friends
-description: Amigos de KOG en línea y su servidor actual.
+description: Amigos de DDNet en línea y su servidor actual.
 publish_to: none
 version: 0.1.0+1
 
@@ -9,8 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  home_widget: ^0.10.0
   http: ^1.2.2
   shared_preferences: ^2.3.2
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:
@@ -21,10 +23,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - flutter_01.png
+    - assets/icon/app_icon.png
 
 flutter_launcher_icons:
   android: true
-  ios: false
-  image_path: "flutter_01.png"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
   min_sdk_android: 21

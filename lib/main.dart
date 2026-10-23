@@ -2,23 +2,25 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import 'src/ddnet_presence_service.dart';
 import 'src/friend_command_parser.dart';
-import 'src/kog_presence_service.dart';
 
 void main() {
-  runApp(const KogFriendsApp());
+  runApp(const DDNetFriendsApp());
 }
 
-class KogFriendsApp extends StatelessWidget {
-  const KogFriendsApp({super.key});
+class DDNetFriendsApp extends StatelessWidget {
+  const DDNetFriendsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'KOG Friends',
+      title: 'DDNet Friends',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -46,7 +48,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
   static const _friendsKey = 'friend_names_v1';
   static const _refreshInterval = Duration(seconds: 30);
 
-  final _presenceService = KogPresenceService(http.Client());
+  final _presenceService = DDNetPresenceService(http.Client());
   List<String> _friends = [];
   Map<String, ServerPresence> _onlineFriends = {};
   DateTime? _lastUpdated;
@@ -123,6 +125,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
           _onlineFriends = {};
         });
       }
+      unawaited(_updateWidget());
       return;
     }
     final requestedFriends = List<String>.of(_friends);
@@ -140,6 +143,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
         );
         _lastUpdated = DateTime.now();
       });
+      unawaited(_updateWidget());
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -155,6 +159,21 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
           unawaited(_refreshPresence());
         }
       }
+    }
+  }
+
+  Future<void> _updateWidget() async {
+    try {
+      final onlineCount = _onlineFriends.length;
+      final totalCount = _friends.length;
+      await HomeWidget.saveWidgetData<String>('title', 'DDNet Friends');
+      await HomeWidget.saveWidgetData<String>(
+        'message',
+        '$onlineCount de $totalCount amigos en línea',
+      );
+      await HomeWidget.updateWidget(name: 'AppWidgetProvider');
+    } catch (_) {
+      // Ignore widget errors on unsupported platforms or tests.
     }
   }
 
@@ -232,8 +251,8 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Pegá los comandos add_friend copiados de DDNet. '
-                'Se importa el nombre y se ignora el clan. '
+                'Escribí un nombre por línea, o pegá comandos add_friend '
+                'copiados de DDNet. Se importa el nombre y se ignora el clan. '
                 'También se admite add_player.',
               ),
               const SizedBox(height: 16),
@@ -243,7 +262,8 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
                 minLines: 3,
                 maxLines: 7,
                 decoration: const InputDecoration(
-                  hintText: 'add_friend "Nombre del jugador" "Clan"',
+                  hintText:
+                      'agus\nOtroJugador\nadd_friend "Nombre del jugador" "Clan"',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -279,9 +299,12 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Hay dos formas de importar amigos:'),
+                const Text('Hay dos formas de agregar amigos:'),
                 const SizedBox(height: 12),
-                const Text('1. Agrégalos uno por uno pegando un comando add_friend.'),
+                const Text(
+                  '1. Agrégalos uno por uno escribiendo su nombre directo '
+                  '(ej. agus) o pegando un comando add_friend.',
+                ),
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
@@ -291,7 +314,7 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const SelectableText(
-                    'add_friend "Dkz" "|*KoG*|"\n'
+                    'add_friend "Dkz\'" "|*KoG*|"\n'
                     'add_friend "Floῳless" ""\n'
                     'add_friend "Serafim" ""\n'
                     'add_friend "Peoxx" ""\n'
@@ -302,8 +325,9 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  '2. O abrí %appdata%\\Roaming\\DDNet\\settings_ddnet.cfg '
-                  'y copiá el bloque final con add_friend para importarlos todos a la vez.',
+                  '2. O andá a "%appdata%", entrá a AppData\\Roaming\\DDNet '
+                  'y abrí settings_ddnet.cfg. Al final del cfg están los '
+                  'add_friend: ahí los podés copiar todos de una.',
                 ),
                 const SizedBox(height: 8),
                 SelectableText(
@@ -338,8 +362,15 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('KOG Friends'),
+        title: const Text('DDNet Friends'),
         actions: [
+          IconButton(
+            tooltip: 'Donar',
+            onPressed: () {
+              launchUrl(Uri.parse('https://ko-fi.com/agusx30'));
+            },
+            icon: const Icon(Icons.favorite, color: Colors.pinkAccent),
+          ),
           IconButton(
             tooltip: 'Actualizar ahora',
             onPressed:
@@ -357,24 +388,23 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(left: 32),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        padding: const EdgeInsets.only(left: 24),
+        child: Wrap(
+          alignment: WrapAlignment.end,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10,
+          runSpacing: 10,
           children: [
-            TextButton.icon(
+            FloatingActionButton.extended(
+              heroTag: 'how_to',
               onPressed: _showInviteDialog,
+              backgroundColor: theme.colorScheme.surfaceContainerHigh,
+              foregroundColor: theme.colorScheme.onSurface,
               icon: const Icon(Icons.help_outline),
               label: const Text('Cómo invitar?'),
-              style: TextButton.styleFrom(
-                backgroundColor: theme.colorScheme.surfaceContainerHigh,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
             ),
-            const SizedBox(width: 8),
             FloatingActionButton.extended(
+              heroTag: 'add_friend',
               onPressed: _showAddDialog,
               icon: const Icon(Icons.person_add_alt_1),
               label: const Text('Agregar amigos'),
@@ -536,7 +566,7 @@ class _FriendTile extends StatelessWidget {
         ),
         title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(
-          online ? serverDetails : 'Sin conexión en KOG',
+          online ? serverDetails : 'Sin conexión en DDNet',
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -594,7 +624,7 @@ class _EmptyFriendsCard extends StatelessWidget {
             const Text('Todavía no agregaste amigos'),
             const SizedBox(height: 4),
             Text(
-              'Pegá tus comandos add_friend para empezar.',
+              'Escribí un nombre o pegá tus comandos add_friend para empezar.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodySmall,
             ),
