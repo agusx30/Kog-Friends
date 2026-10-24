@@ -181,27 +181,27 @@ class AppStrings {
 
   String get howToStep1 => switch (language) {
         AppLanguage.es =>
-          '1. Agrégalos uno por uno escribiendo su nombre directo '
+          'Agrégalos uno por uno escribiendo su nombre directo '
               '(ej. agus) o pegando un comando add_friend.',
         AppLanguage.en =>
-          '1. Add them one by one by typing their name directly '
+          'Add them one by one by typing their name directly '
               '(e.g. agus) or pasting an add_friend command.',
         AppLanguage.pt =>
-          '1. Adicione um por um digitando o nome diretamente '
+          'Adicione um por um digitando o nome diretamente '
               '(ex. agus) ou colando um comando add_friend.',
       };
 
   String get howToStep2 => switch (language) {
         AppLanguage.es =>
-          '2. O andá a "%appdata%", entrá a AppData\\Roaming\\DDNet '
+          'O andá a "%appdata%", entrá a AppData\\Roaming\\DDNet '
               'y abrí settings_ddnet.cfg. Al final del cfg están los '
               'add_friend: ahí los podés copiar todos de una.',
         AppLanguage.en =>
-          '2. Or go to "%appdata%", open AppData\\Roaming\\DDNet '
+          'Or go to "%appdata%", open AppData\\Roaming\\DDNet '
               'and open settings_ddnet.cfg. At the end of the file you will find '
               'all your add_friend lines to copy at once.',
         AppLanguage.pt =>
-          '2. Ou vá em "%appdata%", entre em AppData\\Roaming\\DDNet '
+          'Ou vá em "%appdata%", entre em AppData\\Roaming\\DDNet '
               'e abra settings_ddnet.cfg. No final do arquivo estão os '
               'add_friend: lá você pode copiar todos de uma vez.',
       };
