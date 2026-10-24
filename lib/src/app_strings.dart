@@ -56,6 +56,30 @@ class AppStrings {
         AppLanguage.pt => 'SEUS AMIGOS',
       };
 
+  String get activeFriendsHeader => switch (language) {
+        AppLanguage.es => 'ACTIVOS',
+        AppLanguage.en => 'ACTIVE',
+        AppLanguage.pt => 'ATIVOS',
+      };
+
+  String get inactiveFriendsHeader => switch (language) {
+        AppLanguage.es => 'INACTIVOS',
+        AppLanguage.en => 'INACTIVE',
+        AppLanguage.pt => 'INATIVOS',
+      };
+
+  String get noActiveFriends => switch (language) {
+        AppLanguage.es => 'Ningún amigo en línea en este momento',
+        AppLanguage.en => 'No friends online right now',
+        AppLanguage.pt => 'Nenhum amigo online no momento',
+      };
+
+  String get noInactiveFriends => switch (language) {
+        AppLanguage.es => 'Todos tus amigos están en línea',
+        AppLanguage.en => 'All your friends are online',
+        AppLanguage.pt => 'Todos os seus amigos estão online',
+      };
+
   String onlineSummary(int totalCount) => switch (language) {
         AppLanguage.es => 'de $totalCount amigos en línea',
         AppLanguage.en => 'of $totalCount friends online',

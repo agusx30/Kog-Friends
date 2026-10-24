@@ -60,6 +60,8 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
   bool _loading = true;
   bool _refreshing = false;
   bool _refreshPending = false;
+  bool _activeExpanded = true;
+  bool _inactiveExpanded = true;
 
   AppStrings get _strings => AppStrings(_language);
 
@@ -364,12 +366,14 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final strings = _strings;
-    final sortedFriends = [..._friends]..sort((a, b) {
-        final aOnline = _onlineFriends.containsKey(a.toLowerCase());
-        final bOnline = _onlineFriends.containsKey(b.toLowerCase());
-        if (aOnline != bOnline) return aOnline ? -1 : 1;
-        return a.toLowerCase().compareTo(b.toLowerCase());
-      });
+    final activeFriends = _friends
+        .where((name) => _onlineFriends.containsKey(name.toLowerCase()))
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final inactiveFriends = _friends
+        .where((name) => !_onlineFriends.containsKey(name.toLowerCase()))
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
     return Scaffold(
       appBar: AppBar(
@@ -489,23 +493,162 @@ class _FriendsPageState extends State<FriendsPage> with WidgetsBindingObserver {
                     const SizedBox(height: 10),
                     if (_friends.isEmpty)
                       _EmptyFriendsCard(strings: strings)
-                    else
-                      ...sortedFriends.map((name) {
-                        final presence = _onlineFriends[name.toLowerCase()];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: _FriendTile(
-                            name: name,
-                            presence: presence,
-                            onRemove: () => _removeFriend(name),
-                            strings: strings,
-                          ),
-                        );
-                      }),
+                    else ...[
+                      _CollapsibleGroupSection(
+                        title: strings.activeFriendsHeader,
+                        count: activeFriends.length,
+                        isOnlineGroup: true,
+                        expanded: _activeExpanded,
+                        emptyMessage: strings.noActiveFriends,
+                        onToggle: () {
+                          setState(() {
+                            _activeExpanded = !_activeExpanded;
+                          });
+                        },
+                        children: activeFriends.map((name) {
+                          final presence = _onlineFriends[name.toLowerCase()];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _FriendTile(
+                              name: name,
+                              presence: presence,
+                              onRemove: () => _removeFriend(name),
+                              strings: strings,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 12),
+                      _CollapsibleGroupSection(
+                        title: strings.inactiveFriendsHeader,
+                        count: inactiveFriends.length,
+                        isOnlineGroup: false,
+                        expanded: _inactiveExpanded,
+                        emptyMessage: strings.noInactiveFriends,
+                        onToggle: () {
+                          setState(() {
+                            _inactiveExpanded = !_inactiveExpanded;
+                          });
+                        },
+                        children: inactiveFriends.map((name) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _FriendTile(
+                              name: name,
+                              presence: null,
+                              onRemove: () => _removeFriend(name),
+                              strings: strings,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ],
                 ),
               ),
       ),
+    );
+  }
+}
+
+class _CollapsibleGroupSection extends StatelessWidget {
+  const _CollapsibleGroupSection({
+    required this.title,
+    required this.count,
+    required this.isOnlineGroup,
+    required this.expanded,
+    required this.emptyMessage,
+    required this.onToggle,
+    required this.children,
+  });
+
+  final String title;
+  final int count;
+  final bool isOnlineGroup;
+  final bool expanded;
+  final String emptyMessage;
+  final VoidCallback onToggle;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accentColor = isOnlineGroup
+        ? const Color(0xFFB9F36A)
+        : theme.colorScheme.onSurfaceVariant;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: theme.colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.circle,
+                    size: 10,
+                    color: accentColor,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    title,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: isOnlineGroup
+                          ? accentColor
+                          : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$count',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: accentColor,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    expanded ? Icons.expand_less : Icons.expand_more,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (expanded) ...[
+          const SizedBox(height: 8),
+          if (children.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Text(
+                emptyMessage,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            )
+          else
+            ...children,
+        ],
+      ],
     );
   }
 }

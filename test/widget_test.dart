@@ -83,4 +83,29 @@ void main() {
     expect(find.text('Adicionar amigos'), findsOneWidget);
     expect(find.text('SEUS AMIGOS'), findsOneWidget);
   });
+
+  testWidgets('displays collapsible active and inactive groups', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'friend_names_v1': '["agus"]',
+    });
+
+    await tester.pumpWidget(const DDNetFriendsApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('ACTIVOS'), findsOneWidget);
+    expect(find.text('INACTIVOS'), findsOneWidget);
+    expect(find.text('agus'), findsOneWidget);
+
+    // Collapse INACTIVOS group
+    await tester.tap(find.text('INACTIVOS'));
+    await tester.pumpAndSettle();
+    expect(find.text('agus'), findsNothing);
+
+    // Expand INACTIVOS group again
+    await tester.tap(find.text('INACTIVOS'));
+    await tester.pumpAndSettle();
+    expect(find.text('agus'), findsOneWidget);
+  });
 }
