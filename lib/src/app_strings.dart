@@ -193,17 +193,17 @@ class AppStrings {
 
   String get howToStep2 => switch (language) {
         AppLanguage.es =>
-          'O andá a "%appdata%", entrá a AppData\\Roaming\\DDNet '
+          'Andá a "%appdata%", entrá a AppData\\Roaming\\DDNet '
               'y abrí settings_ddnet.cfg. Al final del cfg están los '
-              'add_friend: ahí los podés copiar todos de una.',
+              'add_friend: ahí los podés copiar todos de una y pegar directamente.',
         AppLanguage.en =>
-          'Or go to "%appdata%", open AppData\\Roaming\\DDNet '
+          'Go to "%appdata%", open AppData\\Roaming\\DDNet '
               'and open settings_ddnet.cfg. At the end of the file you will find '
-              'all your add_friend lines to copy at once.',
+              'all your add_friend lines to copy at once and paste directly.',
         AppLanguage.pt =>
-          'Ou vá em "%appdata%", entre em AppData\\Roaming\\DDNet '
+          'Vá em "%appdata%", entre em AppData\\Roaming\\DDNet '
               'e abra settings_ddnet.cfg. No final do arquivo estão os '
-              'add_friend: lá você pode copiar todos de uma vez.',
+              'add_friend: lá você pode copiar todos de uma vez e colar diretamente.',
       };
 
   String get doneButton => switch (language) {
